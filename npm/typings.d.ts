@@ -188,4 +188,11 @@ export function setKeyboardCallback(callback: Function): void;
  * In this mode overlay module intercept user keyboard and mouse events and use callbacks to send them to frontend
  * 
  */
-export function switchInteractiveMode( active: Boolean ): void;
+export function switchInteractiveMode(active: Boolean): void;
+
+/**
+ * Switch on/off collecting user input for overlays
+ * In this mode overlay module take user keyboard and mouse events without intercepting them and use callbacks to send them to frontend
+ * 
+ */
+export function SwitchInputCollection(active: Boolean): void;

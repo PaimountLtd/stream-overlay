@@ -48,6 +48,8 @@ struct callback_method_t
 	static bool set_intercept_active(bool) noexcept;
 
 	static bool get_intercept_active() noexcept;
+	static bool get_input_collection_active() noexcept;
+	static bool set_input_collection_active(bool) noexcept;
 
 	static void static_async_callback(uv_async_t* handle);
 	void async_callback();
@@ -109,4 +111,5 @@ struct callback_mouse_method_t : callback_method_t
 extern callback_keyboard_method_t* user_keyboard_callback_info;
 extern callback_mouse_method_t* user_mouse_callback_info;
 
-int switch_input();
+BOOL switch_interactive_mode();
+BOOL switch_input_collecting();

@@ -18,7 +18,7 @@ To configure a build
 ```
 mkdir build
 cd build
-cmake -G "Visual Studio 16 2019" -A x64  ../ 
+cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_INSTALL_PREFIX="desktop\node_modules\game-overlay" ../
 ```
 
 And to make a build
@@ -34,7 +34,7 @@ cmake --build . --config Release
 ### Module use examples
   Examples to show api usage for simple usecases. 
 ```
-yarn electron examples\example_with_offscreen.js	  
+yarn electron examples\example_with_offscreen.js
 yarn electron examples\example_interactivity_console.js
 yarn electron examples\example_interactivity_window.js
 ```

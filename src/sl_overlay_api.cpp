@@ -169,7 +169,7 @@ int WINAPI remove_overlay(int id)
 
 static int (*callback_keyboard_ptr)(WPARAM, LPARAM) = nullptr;
 static int (*callback_mouse_ptr)(WPARAM, LPARAM) = nullptr;
-static int (*callback_switch_ptr)() = nullptr;
+static BOOL (*callback_switch_ptr)() = nullptr;
 
 int WINAPI set_callback_for_keyboard_input(int (*ptr)(WPARAM, LPARAM))
 {
@@ -185,7 +185,7 @@ int WINAPI set_callback_for_mouse_input(int (*ptr)(WPARAM, LPARAM))
 	return 0;
 }
 
-int WINAPI set_callback_for_switching_input(int (*ptr)())
+int WINAPI set_callback_for_switching_input(BOOL (*ptr)())
 {
 	callback_switch_ptr = ptr;
 
@@ -219,7 +219,7 @@ int WINAPI use_callback_for_switching_input()
 	return 0;
 }
 
-int WINAPI switch_overlays_user_input(bool mode_active)
+BOOL WINAPI switch_overlays_interactive_mode(bool mode_active)
 {
 	BOOL ret = false;
 
@@ -231,7 +231,20 @@ int WINAPI switch_overlays_user_input(bool mode_active)
 		ret = PostThreadMessage((DWORD)overlays_thread_id, WM_SLO_OVERLAY_COMMAND, COMMAND_RELEASE_INPUT, 0);
 	}
 
-	return 0;
+	return ret;
+}
+
+BOOL WINAPI switch_overlays_collect_user_input(bool mode_active)
+{
+	BOOL ret = false;
+	if(mode_active)
+	{
+		ret = PostThreadMessage((DWORD)overlays_thread_id, WM_SLO_OVERLAY_COMMAND, COMMAND_COLLECT_INPUT, 0);
+	} else {
+		ret = PostThreadMessage((DWORD)overlays_thread_id, WM_SLO_OVERLAY_COMMAND, COMMAND_RELEASE_INPUT, 0);
+	}
+
+	return ret;
 }
 
 int WINAPI add_overlay_by_hwnd(const void* hwnd_array, size_t array_size)

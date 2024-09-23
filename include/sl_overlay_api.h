@@ -28,10 +28,11 @@ int WINAPI set_overlay_autohide(int id, int autohide_timeout, int autohide_trans
 
 int WINAPI set_callback_for_keyboard_input(int (*ptr)(WPARAM, LPARAM));
 int WINAPI set_callback_for_mouse_input(int (*ptr)(WPARAM, LPARAM));
-int WINAPI set_callback_for_switching_input(int (*ptr)());
+int WINAPI set_callback_for_switching_input(BOOL (*ptr)());
 
 int WINAPI use_callback_for_keyboard_input(WPARAM wParam, LPARAM lParam);
 int WINAPI use_callback_for_mouse_input(WPARAM wParam, LPARAM lParam);
 int WINAPI use_callback_for_switching_input();
 
-int WINAPI switch_overlays_user_input(bool mode_active);
+BOOL WINAPI switch_overlays_interactive_mode(bool mode_active);
+BOOL WINAPI switch_overlays_collect_user_input(bool mode_active);

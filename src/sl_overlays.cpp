@@ -90,7 +90,7 @@ bool smg_overlays::process_commands(MSG& msg)
 
 	case COMMAND_TAKE_INPUT:
 	{
-		hook_user_input();
+		hook_user_input(true);
 
 		showup_overlays();
 		apply_interactive_mode_view();
@@ -103,6 +103,12 @@ bool smg_overlays::process_commands(MSG& msg)
 		apply_interactive_mode_view();
 	}
 	break;
+	case COMMAND_COLLECT_INPUT:
+	{
+		hook_user_input(false);
+	}
+	break;
+
 	};
 
 	return ret;
@@ -164,7 +170,7 @@ void smg_overlays::on_update_timer()
 		std::for_each(
 		    showing_windows.begin(),
 		    showing_windows.end(),
-		    [is_intercepting = this->is_intercepting](std::shared_ptr<overlay_window>& n) {
+		    [is_input_hooked = this->is_input_hooked](std::shared_ptr<overlay_window>& n) {
 			    if (n->is_visible())
 			    {
 				    if (n->is_content_updated())
@@ -172,7 +178,7 @@ void smg_overlays::on_update_timer()
 					    InvalidateRect(n->overlay_hwnd, nullptr, TRUE);
 				    } else
 				    {
-					    if (!is_intercepting)
+					    if (!is_input_hooked)
 					    {
 						    n->check_autohide();
 					    }
@@ -226,8 +232,8 @@ void smg_overlays::apply_interactive_mode_view()
 		std::for_each(
 		    showing_windows.begin(),
 		    showing_windows.end(),
-		    [is_intercepting = this->is_intercepting](std::shared_ptr<overlay_window>& n) {
-			    n->apply_interactive_mode(is_intercepting);
+		    [is_input_hooked = this->is_input_hooked](std::shared_ptr<overlay_window>& n) {
+			    n->apply_interactive_mode(is_input_hooked);
 		    });
 	}
 }
@@ -296,14 +302,19 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	{
 		KBDLLHOOKSTRUCT* event = (KBDLLHOOKSTRUCT*)lParam;
 		log_info << "APP: LowLevelKeyboardProc " << event->vkCode << ", " << event->dwExtraInfo << std::endl;
+		std::shared_ptr<smg_overlays> app = smg_overlays::get_instance();
 
-		if (event->vkCode == VK_ESCAPE)
+		if (event->vkCode == VK_ESCAPE && app->is_input_intercepting)
 		{
 			use_callback_for_switching_input();
-		} else
-
+		} else {
 			use_callback_for_keyboard_input(wParam, lParam);
-		return -1;
+		}
+
+		if( app->is_input_intercepting) 
+		{
+			return -1;
+		}
 	}
 
 	return CallNextHookEx(llkeyboard_hook, nCode, wParam, lParam);
@@ -318,30 +329,33 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 		         << event->dwExtraInfo << std::endl;
 
 		std::shared_ptr<smg_overlays> app = smg_overlays::get_instance();
-		if (app->is_inside_overlay(event->pt.x, event->pt.y))
+		if (app->is_input_intercepting && app->is_inside_overlay(event->pt.x, event->pt.y))
 		{
 			use_callback_for_mouse_input(wParam, lParam);
-		} else
-		{
+		} else if (app->is_input_intercepting ){
 			if (wParam != WM_MOUSEMOVE && wParam != WM_MOUSEWHEEL && wParam != WM_MOUSEHWHEEL)
 			{
 				use_callback_for_switching_input();
 			}
+		} else {
+			use_callback_for_mouse_input(wParam, lParam);
 		}
 
 		if (wParam != WM_MOUSEMOVE)
 		{
-			return -1;
+			if( app->is_input_intercepting)	{
+				return -1;
+			}
 		}
 	}
 	return CallNextHookEx(llmouse_hook, nCode, wParam, lParam);
 }
 
-void smg_overlays::hook_user_input()
+void smg_overlays::hook_user_input(bool need_to_intercept)
 {
 	log_info << "APP: hook_user_input " << std::endl;
 
-	if (!is_intercepting)
+	if (!is_input_hooked)
 	{
 		HWND game_hwnd = GetForegroundWindow();
 		if (game_hwnd != nullptr)
@@ -357,16 +371,19 @@ void smg_overlays::hook_user_input()
 		llkeyboard_hook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, NULL, 0);
 		llmouse_hook = SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, NULL, 0);
 
-		is_intercepting = true;
+		is_input_hooked = true;
+		is_input_intercepting = need_to_intercept;
 
 		log_info << "APP: Input hooked" << std::endl;
+	} else {
+		log_info << "APP: Input already hooked" << std::endl;
 	}
 }
 
 void smg_overlays::unhook_user_input()
 {
 	log_info << "APP: unhook_user_input " << std::endl;
-	if (is_intercepting)
+	if (is_input_hooked)
 	{
 		if (msg_hook != nullptr)
 		{
@@ -385,7 +402,7 @@ void smg_overlays::unhook_user_input()
 		}
 
 		log_info << "APP: Input unhooked" << std::endl;
-		is_intercepting = false;
+		is_input_hooked = false;
 	}
 }
 

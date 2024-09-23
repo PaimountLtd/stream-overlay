@@ -172,6 +172,7 @@ void callback_method_t::callback_method_reset() noexcept
 }
 
 bool is_intercept_active = false;
+bool is_input_collection_active = false;
 bool callback_method_t::set_intercept_active(bool new_state) noexcept
 {
 	is_intercept_active = new_state;
@@ -181,6 +182,17 @@ bool callback_method_t::set_intercept_active(bool new_state) noexcept
 bool callback_method_t::get_intercept_active() noexcept
 {
 	return is_intercept_active;
+}
+
+bool callback_method_t::get_input_collection_active() noexcept
+{
+	return is_input_collection_active;
+}
+
+bool callback_method_t::set_input_collection_active(bool new_state) noexcept
+{
+	is_input_collection_active = new_state;
+	return new_state;
 }
 
 napi_status callback_keyboard_method_t::set_callback_args_values(napi_env env)
@@ -299,16 +311,17 @@ napi_status callback_mouse_method_t::set_callback_args_values(napi_env env)
 	{
 		status = napi_create_string_utf8(env, event_type.c_str(), event_type.size(), &argv_to_cb[0]);
 	}
+	MSLLHOOKSTRUCT* event_data = (MSLLHOOKSTRUCT*)event->lParam;
 
 	if (send_mouse)
 	{
 		if (status == napi_ok)
 		{
-			status = napi_create_int32(env, 100, &argv_to_cb[1]);
+			status = napi_create_int32(env, event_data->pt.x, &argv_to_cb[1]);
 		}
 		if (status == napi_ok)
 		{
-			status = napi_create_int32(env, 100, &argv_to_cb[2]);
+			status = napi_create_int32(env, event_data->pt.y, &argv_to_cb[2]);
 		}
 		if (status == napi_ok)
 		{
@@ -325,11 +338,11 @@ napi_status callback_mouse_method_t::set_callback_args_values(napi_env env)
 	return status;
 }
 
-int callback_method_t::use_callback(WPARAM wParam, LPARAM lParam)
+BOOL callback_method_t::use_callback(WPARAM wParam, LPARAM lParam)
 {
 	log_info << "APP: use_callback called" << std::endl;
 
-	int ret = -1;
+	BOOL ret = false;
 
 	{
 		std::lock_guard<std::mutex> lock(send_queue_mutex);
@@ -341,21 +354,33 @@ int callback_method_t::use_callback(WPARAM wParam, LPARAM lParam)
 	if (to_send.size() > 256)
 	{
 		log_info << "APP: Failed to send too many events, will switch input interception off" << std::endl;
-		ret = switch_input();
+		ret = switch_interactive_mode();
 	}
 
 	return ret;
 }
 
-int switch_input()
+BOOL switch_interactive_mode()
 {
-	log_info << "APP: switch_input " << std::endl;
+	log_info << "APP: switch_interactive_mode " << std::endl;
 
-	int ret = -1;
+	BOOL ret = false;
 
 	callback_method_t::set_intercept_active(!callback_method_t::get_intercept_active());
 
-	ret = switch_overlays_user_input(callback_method_t::get_intercept_active());
+	ret = switch_overlays_interactive_mode(callback_method_t::get_intercept_active());
+
+	return ret;
+}
+
+BOOL switch_input_collecting()
+{
+	log_info << "APP: switch_input_collecting " << std::endl;
+
+	BOOL ret = false;
+	callback_method_t::set_input_collection_active(!callback_method_t::get_input_collection_active());
+
+	ret = switch_overlays_collect_user_input(callback_method_t::get_input_collection_active());
 
 	return ret;
 }

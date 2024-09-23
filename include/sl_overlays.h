@@ -49,8 +49,9 @@ class smg_overlays
 	void quit();
 
 	//redirect user input
-	bool is_intercepting = false;
-	void hook_user_input();
+	bool is_input_hooked = false;
+	bool is_input_intercepting = false;
+	void hook_user_input(bool need_to_intercept);
 	void unhook_user_input();
 
 	//commands

@@ -212,11 +212,46 @@ napi_value SwitchToInteractive(napi_env env, napi_callback_info args)
 
 	if (callback_method_t::get_intercept_active() != switch_to && check_visibility_for_switch)
 	{
-		set_callback_for_switching_input(&switch_input); // so module can switch itself off by some command
+		set_callback_for_switching_input(&switch_interactive_mode); // so module can switch itself off by some command
 
-		switch_input();
+		switch_interactive_mode();
 
 		log_info << "APP: SwitchToInteractive " << callback_method_t::get_intercept_active() << std::endl;
+
+		switched = 1;
+	}
+
+	if (napi_create_int32(env, switched, &ret) != napi_ok)
+		return failed_ret;
+
+	return ret;
+}
+
+napi_value SwitchInputCollection(napi_env env, napi_callback_info args)
+{
+	if (!user_keyboard_callback_info->ready || !user_mouse_callback_info->ready)
+	{
+		log_info << "APP: SwitchInputCollection rejected as callbacks not set" << std::endl;
+		return failed_ret;
+	}
+
+	napi_value ret = nullptr;
+	size_t argc = 1;
+	napi_value argv[1];
+	bool switch_to;
+	int switched = -1;
+
+	if (napi_get_cb_info(env, args, &argc, argv, NULL, NULL) != napi_ok)
+		return failed_ret;
+
+	if (napi_get_value_bool(env, argv[0], &switch_to) != napi_ok)
+		return failed_ret;
+	
+	if (callback_method_t::get_input_collection_active() != switch_to)
+	{
+		switch_input_collecting();
+
+		log_info << "APP: SwitchInputCollection " << callback_method_t::get_input_collection_active() << std::endl;
 
 		switched = 1;
 	}
@@ -632,6 +667,11 @@ napi_value init(napi_env env, napi_value exports)
 	if (napi_create_function(env, nullptr, 0, SwitchToInteractive, nullptr, &fn) != napi_ok)
 		return failed_ret;
 	if (napi_set_named_property(env, exports, "switchInteractiveMode", fn) != napi_ok)
+		return failed_ret;
+
+	if (napi_create_function(env, nullptr, 0, SwitchInputCollection, nullptr, &fn) != napi_ok)
+		return failed_ret;
+	if (napi_set_named_property(env, exports, "switchInputCollection", fn) != napi_ok)
 		return failed_ret;
 
 	if (napi_create_function(env, nullptr, 0, SetKeyboardCallback, nullptr, &fn) != napi_ok)

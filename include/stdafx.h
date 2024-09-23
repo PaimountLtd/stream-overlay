@@ -58,6 +58,7 @@ const int COMMAND_HIDE_OVERLAYS = 2;
 const int COMMAND_QUIT = 4;
 const int COMMAND_TAKE_INPUT = 7;
 const int COMMAND_RELEASE_INPUT = 8;
+const int COMMAND_COLLECT_INPUT = 9;
 
 //command for web view thread to close web view
 //wParam id
